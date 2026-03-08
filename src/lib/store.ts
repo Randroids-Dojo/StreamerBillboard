@@ -2,6 +2,8 @@ import { Redis } from "@upstash/redis";
 
 export interface BillboardState {
   bgcolor: string;
+  text: string;
+  textColor: string;
   lastUpdatedBy: string;
   lastUpdatedAt: string;
 }
@@ -10,9 +12,18 @@ const STATE_KEY = "sbb:state";
 
 const DEFAULT_STATE: BillboardState = {
   bgcolor: "#000000",
+  text: "",
+  textColor: "#ffffff",
   lastUpdatedBy: "",
   lastUpdatedAt: "",
 };
+
+// In-memory fallback for local dev (when KV env vars are not set)
+let memoryState: BillboardState = { ...DEFAULT_STATE };
+
+function hasRedis(): boolean {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
 
 function getRedis() {
   return new Redis({
@@ -22,17 +33,26 @@ function getRedis() {
 }
 
 export async function getState(): Promise<BillboardState> {
+  if (!hasRedis()) {
+    return { ...memoryState };
+  }
   const redis = getRedis();
   const state = await redis.get<BillboardState>(STATE_KEY);
-  return state ?? DEFAULT_STATE;
+  return state ? { ...DEFAULT_STATE, ...state } : DEFAULT_STATE;
 }
 
 export async function setState(
   update: Partial<BillboardState>
 ): Promise<BillboardState> {
-  const redis = getRedis();
   const current = await getState();
   const next: BillboardState = { ...current, ...update };
+
+  if (!hasRedis()) {
+    memoryState = next;
+    return next;
+  }
+
+  const redis = getRedis();
   await redis.set(STATE_KEY, next);
   return next;
 }
