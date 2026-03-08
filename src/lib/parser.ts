@@ -10,8 +10,13 @@ export interface ChatMessage {
   timestamp: string;
 }
 
-export interface ParsedCommand {
-  type: string;
+export interface ParsedColorCommand {
+  type: "color";
+  value: string;
+}
+
+export interface ParsedTextCommand {
+  type: "text";
   value: string;
 }
 
@@ -25,7 +30,11 @@ export interface ParsedCounterCommand {
   action: CounterAction;
 }
 
-export type AnyParsedCommand = ParsedCommand | ParsedTTTCommand | ParsedCounterCommand;
+export type AnyParsedCommand =
+  | ParsedColorCommand
+  | ParsedTextCommand
+  | ParsedTTTCommand
+  | ParsedCounterCommand;
 
 const PREFIX = "SBB";
 const TEXT_PREFIX = "TEXT";

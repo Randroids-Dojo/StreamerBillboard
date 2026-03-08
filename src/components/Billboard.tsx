@@ -1,20 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type TicTacToeMark = "" | "X" | "O";
-
-interface BillboardState {
-  bgcolor: string;
-  text: string;
-  textColor: string;
-  tttBoard: TicTacToeMark[];
-  tttCurrentTurn: "X" | "O";
-  tttWinner: "" | "X" | "O" | "draw";
-  counter: number;
-  lastUpdatedBy: string;
-  lastUpdatedAt: string;
-}
+import type { TicTacToeMark } from "@/lib/commands/tictactoe";
+import type { BillboardState } from "@/lib/store";
 
 const DEFAULT_STATE: BillboardState = {
   bgcolor: "#000000",

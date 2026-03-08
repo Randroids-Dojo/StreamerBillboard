@@ -51,10 +51,11 @@ export async function getState(): Promise<BillboardState> {
 }
 
 export async function setState(
-  update: Partial<BillboardState>
+  update: Partial<BillboardState>,
+  current?: BillboardState
 ): Promise<BillboardState> {
-  const current = await getState();
-  const next: BillboardState = { ...current, ...update };
+  const base = current ?? (await getState());
+  const next: BillboardState = { ...base, ...update };
 
   if (!hasRedis()) {
     memoryState = next;
