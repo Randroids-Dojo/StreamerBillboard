@@ -22,11 +22,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "ignored" });
   }
 
+  const timestamp = body.timestamp ?? new Date().toISOString();
+
   if (command.type === "color") {
     const newState = await setState({
       bgcolor: command.value,
       lastUpdatedBy: body.username,
-      lastUpdatedAt: body.timestamp ?? new Date().toISOString(),
+      lastUpdatedAt: timestamp,
+    });
+    return NextResponse.json({ status: "ok", state: newState });
+  }
+
+  if (command.type === "text") {
+    const newState = await setState({
+      text: command.value,
+      lastUpdatedBy: body.username,
+      lastUpdatedAt: timestamp,
     });
     return NextResponse.json({ status: "ok", state: newState });
   }

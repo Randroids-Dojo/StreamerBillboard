@@ -38,6 +38,7 @@ src/
     store.ts                  # Vercel KV state read/write
     commands/
       color.ts                # Color command handler (MVP)
+      text.ts                 # Text display command handler
 ```
 
 ## Conventions
@@ -53,5 +54,6 @@ src/
 
 - **State shape** is flat JSON stored in a single Redis key (`sbb:state`).
 - **Color validation** accepts CSS named colors, hex (`#RGB`/`#RRGGBB`), and `rgb()`. Invalid input is silently ignored.
+- **Text display** renders large text on the billboard via `SBB text <message>`. Max 200 chars, HTML tags stripped.
 - **SSE stream** has a 5-minute max lifetime and polls KV every 1s server-side.
 - The ingest API is platform-agnostic — it accepts a `ChatMessage` JSON body regardless of source (YouTube, Twitch, or manual test).
