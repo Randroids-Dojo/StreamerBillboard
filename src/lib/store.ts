@@ -1,9 +1,13 @@
 import { Redis } from "@upstash/redis";
+import { type TicTacToeMark } from "@/lib/commands/tictactoe";
 
 export interface BillboardState {
   bgcolor: string;
   text: string;
   textColor: string;
+  tttBoard: TicTacToeMark[];
+  tttCurrentTurn: "X" | "O";
+  tttWinner: "" | "X" | "O" | "draw";
   lastUpdatedBy: string;
   lastUpdatedAt: string;
 }
@@ -14,6 +18,9 @@ const DEFAULT_STATE: BillboardState = {
   bgcolor: "#000000",
   text: "",
   textColor: "#ffffff",
+  tttBoard: ["", "", "", "", "", "", "", "", ""],
+  tttCurrentTurn: "X",
+  tttWinner: "",
   lastUpdatedBy: "",
   lastUpdatedAt: "",
 };

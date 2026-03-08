@@ -1,5 +1,6 @@
 import { parseColor } from "@/lib/commands/color";
 import { parseText } from "@/lib/commands/text";
+import { parseTicTacToe, type TicTacToeMove } from "@/lib/commands/tictactoe";
 
 export interface ChatMessage {
   platform: "youtube" | "twitch";
@@ -13,10 +14,18 @@ export interface ParsedCommand {
   value: string;
 }
 
+export interface ParsedTTTCommand {
+  type: "ttt";
+  move: TicTacToeMove;
+}
+
+export type AnyParsedCommand = ParsedCommand | ParsedTTTCommand;
+
 const PREFIX = "SBB";
 const TEXT_PREFIX = "TEXT";
+const TTT_PREFIX = "TTT";
 
-export function parseCommand(message: string): ParsedCommand | null {
+export function parseCommand(message: string): AnyParsedCommand | null {
   const trimmed = message.trim();
 
   // Check for SBB prefix (case-insensitive)
@@ -33,6 +42,16 @@ export function parseCommand(message: string): ParsedCommand | null {
     const text = parseText(textBody);
     if (text) {
       return { type: "text", value: text };
+    }
+    return null;
+  }
+
+  // Try tic-tac-toe command (SBB ttt 5 / SBB ttt reset)
+  if (body.toUpperCase().startsWith(TTT_PREFIX)) {
+    const tttBody = body.slice(TTT_PREFIX.length).trim();
+    const move = parseTicTacToe(tttBody);
+    if (move) {
+      return { type: "ttt", move };
     }
     return null;
   }
