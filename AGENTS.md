@@ -31,6 +31,7 @@ src/
     api/ingest/route.ts       # POST — receives chat messages, parses commands
     api/state/route.ts        # GET — returns current billboard state
     api/state/stream/route.ts # GET — SSE endpoint for real-time updates
+    api/chat/route.ts         # GET/POST — start/stop chat listeners, view status
   components/
     Billboard.tsx             # Billboard renderer (client component)
   lib/
@@ -39,6 +40,10 @@ src/
     commands/
       color.ts                # Color command handler (MVP)
       text.ts                 # Text display command handler
+    chat/
+      youtube.ts              # YouTube Live Chat API poller
+      twitch.ts               # Twitch IRC client (via tmi.js)
+      manager.ts              # Singleton chat manager — coordinates connections
 ```
 
 ## Conventions
@@ -57,3 +62,5 @@ src/
 - **Text display** renders large text on the billboard via `SBB text <message>`. Max 200 chars, HTML tags stripped.
 - **SSE stream** has a 5-minute max lifetime and polls KV every 1s server-side.
 - The ingest API is platform-agnostic — it accepts a `ChatMessage` JSON body regardless of source (YouTube, Twitch, or manual test).
+- **Chat ingestion** uses a singleton `ChatManager` in `lib/chat/manager.ts`. Start/stop listeners via `POST /api/chat` with `{ action, platform, videoId?, channel? }`. YouTube polls the Live Chat API; Twitch connects via tmi.js WebSocket. Both feed messages through the same command pipeline as the ingest API.
+- **Environment variables** for chat: `YOUTUBE_API_KEY`, `TWITCH_OAUTH_TOKEN` (optional — anonymous read if omitted), `TWITCH_BOT_USERNAME` (optional).
