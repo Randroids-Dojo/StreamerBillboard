@@ -11,6 +11,7 @@ interface BillboardState {
   tttBoard: TicTacToeMark[];
   tttCurrentTurn: "X" | "O";
   tttWinner: "" | "X" | "O" | "draw";
+  counter: number;
   lastUpdatedBy: string;
   lastUpdatedAt: string;
 }
@@ -22,6 +23,7 @@ const DEFAULT_STATE: BillboardState = {
   tttBoard: ["", "", "", "", "", "", "", "", ""],
   tttCurrentTurn: "X",
   tttWinner: "",
+  counter: 0,
   lastUpdatedBy: "",
   lastUpdatedAt: "",
 };
@@ -139,6 +141,15 @@ export function Billboard() {
             winner={state.tttWinner}
           />
         </div>
+      ) : state.counter !== 0 ? (
+        <div className="flex items-center justify-center w-full h-full">
+          <span
+            className="font-mono font-bold text-white tabular-nums transition-all duration-300"
+            style={{ fontSize: "clamp(4rem, 20vw, 24rem)" }}
+          >
+            {state.counter}
+          </span>
+        </div>
       ) : (
         state.text && (
           <div className="flex items-center justify-center w-full h-full">
@@ -160,7 +171,9 @@ export function Billboard() {
           <div>
             {tttActive
               ? `TTT: ${state.tttWinner === "draw" ? "Draw" : state.tttWinner ? `${state.tttWinner} wins` : `${state.tttCurrentTurn}'s turn`}`
-              : state.text || state.bgcolor}
+              : state.counter !== 0
+                ? `Counter: ${state.counter}`
+                : state.text || state.bgcolor}
           </div>
           <div className="text-gray-300">by {state.lastUpdatedBy}</div>
         </div>

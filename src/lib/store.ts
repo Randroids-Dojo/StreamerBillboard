@@ -8,6 +8,7 @@ export interface BillboardState {
   tttBoard: TicTacToeMark[];
   tttCurrentTurn: "X" | "O";
   tttWinner: "" | "X" | "O" | "draw";
+  counter: number;
   lastUpdatedBy: string;
   lastUpdatedAt: string;
 }
@@ -21,6 +22,7 @@ const DEFAULT_STATE: BillboardState = {
   tttBoard: ["", "", "", "", "", "", "", "", ""],
   tttCurrentTurn: "X",
   tttWinner: "",
+  counter: 0,
   lastUpdatedBy: "",
   lastUpdatedAt: "",
 };

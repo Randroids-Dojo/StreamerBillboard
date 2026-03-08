@@ -1,4 +1,5 @@
 import { parseColor } from "@/lib/commands/color";
+import { parseCounter, type CounterAction } from "@/lib/commands/counter";
 import { parseText } from "@/lib/commands/text";
 import { parseTicTacToe, type TicTacToeMove } from "@/lib/commands/tictactoe";
 
@@ -19,11 +20,17 @@ export interface ParsedTTTCommand {
   move: TicTacToeMove;
 }
 
-export type AnyParsedCommand = ParsedCommand | ParsedTTTCommand;
+export interface ParsedCounterCommand {
+  type: "count";
+  action: CounterAction;
+}
+
+export type AnyParsedCommand = ParsedCommand | ParsedTTTCommand | ParsedCounterCommand;
 
 const PREFIX = "SBB";
 const TEXT_PREFIX = "TEXT";
 const TTT_PREFIX = "TTT";
+const COUNT_PREFIX = "COUNT";
 
 export function parseCommand(message: string): AnyParsedCommand | null {
   const trimmed = message.trim();
@@ -42,6 +49,16 @@ export function parseCommand(message: string): AnyParsedCommand | null {
     const text = parseText(textBody);
     if (text) {
       return { type: "text", value: text };
+    }
+    return null;
+  }
+
+  // Try counter command (SBB count up / SBB count down / SBB count reset)
+  if (body.toUpperCase().startsWith(COUNT_PREFIX)) {
+    const countBody = body.slice(COUNT_PREFIX.length).trim();
+    const action = parseCounter(countBody);
+    if (action) {
+      return { type: "count", action };
     }
     return null;
   }
