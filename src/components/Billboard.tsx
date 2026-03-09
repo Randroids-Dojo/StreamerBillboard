@@ -129,18 +129,17 @@ export function Billboard() {
             winner={state.tttWinner}
           />
         </div>
-      ) : state.counter !== 0 ? (
-        <div className="flex items-center justify-center w-full h-full">
-          <span
-            className="font-mono font-bold text-white tabular-nums transition-all duration-300"
-            style={{ fontSize: "clamp(4rem, 20vw, 24rem)" }}
-          >
-            {state.counter}
-          </span>
-        </div>
       ) : (
-        state.text && (
-          <div className="flex items-center justify-center w-full h-full">
+        <div className="flex flex-col items-center justify-center w-full h-full gap-8">
+          {state.counter !== 0 && (
+            <span
+              className="font-mono font-bold text-white tabular-nums transition-all duration-300"
+              style={{ fontSize: "clamp(4rem, 20vw, 24rem)" }}
+            >
+              {state.counter}
+            </span>
+          )}
+          {state.text && (
             <p
               className="text-center font-bold px-8 transition-opacity duration-500"
               style={{
@@ -151,17 +150,19 @@ export function Billboard() {
             >
               {state.text}
             </p>
-          </div>
-        )
+          )}
+        </div>
       )}
       {showOverlay && state.lastUpdatedBy && (
         <div className="absolute bottom-4 right-4 bg-black/50 text-white px-4 py-2 rounded-lg text-sm font-mono backdrop-blur-sm">
           <div>
             {tttActive
               ? `TTT: ${state.tttWinner === "draw" ? "Draw" : state.tttWinner ? `${state.tttWinner} wins` : `${state.tttCurrentTurn}'s turn`}`
-              : state.counter !== 0
-                ? `Counter: ${state.counter}`
-                : state.text || state.bgcolor}
+              : [
+                  state.counter !== 0 && `Counter: ${state.counter}`,
+                  state.text && `Text: "${state.text}"`,
+                  !state.counter && !state.text && state.bgcolor,
+                ].filter(Boolean).join(" · ")}
           </div>
           <div className="text-gray-300">by {state.lastUpdatedBy}</div>
         </div>
