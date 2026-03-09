@@ -128,3 +128,35 @@ export async function getLiveChatId(
   }
   return chatId;
 }
+
+/**
+ * Finds the active liveChatId for a YouTube channel, if currently live.
+ * Returns null if the channel is not live or has no active chat.
+ */
+export async function findActiveLiveChatId(
+  channelId: string,
+  apiKey: string
+): Promise<string | null> {
+  // Step 1: find the live video ID for this channel
+  const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
+  searchUrl.searchParams.set("part", "id");
+  searchUrl.searchParams.set("channelId", channelId);
+  searchUrl.searchParams.set("eventType", "live");
+  searchUrl.searchParams.set("type", "video");
+  searchUrl.searchParams.set("maxResults", "1");
+  searchUrl.searchParams.set("key", apiKey);
+
+  const searchRes = await fetch(searchUrl.toString());
+  if (!searchRes.ok) return null;
+
+  const searchData = await searchRes.json() as { items?: Array<{ id: { videoId: string } }> };
+  const videoId = searchData.items?.[0]?.id?.videoId;
+  if (!videoId) return null;
+
+  // Step 2: get the liveChatId from the video details
+  try {
+    return await getLiveChatId(videoId, apiKey);
+  } catch {
+    return null;
+  }
+}

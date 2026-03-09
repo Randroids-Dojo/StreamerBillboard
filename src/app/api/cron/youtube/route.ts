@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 import { processChatMessage } from "@/lib/chat/processor";
+import { findActiveLiveChatId } from "@/lib/chat/youtube";
 import type { ChatMessage } from "@/lib/parser";
 
 const KV_YOUTUBE_LIVE_CHAT_ID = "sbb:youtube:live_chat_id";
@@ -52,17 +53,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "KV not configured" }, { status: 500 });
   }
 
-  const redis = getRedis();
-
-  // Check if YouTube is active
-  const liveChatId = await redis.get<string>(KV_YOUTUBE_LIVE_CHAT_ID);
-  if (!liveChatId) {
-    return NextResponse.json({ status: "idle" });
-  }
-
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "YOUTUBE_API_KEY is not set" }, { status: 500 });
+  }
+
+  const redis = getRedis();
+
+  // Auto-detect live stream if no liveChatId is stored
+  let liveChatId = await redis.get<string>(KV_YOUTUBE_LIVE_CHAT_ID);
+  if (!liveChatId) {
+    const channelId = process.env.YOUTUBE_CHANNEL_ID;
+    if (!channelId) {
+      return NextResponse.json({ status: "idle" });
+    }
+    const detected = await findActiveLiveChatId(channelId, apiKey);
+    if (!detected) {
+      return NextResponse.json({ status: "idle", reason: "not live" });
+    }
+    await Promise.all([
+      redis.set(KV_YOUTUBE_LIVE_CHAT_ID, detected),
+      redis.del(KV_YOUTUBE_PAGE_TOKEN),
+    ]);
+    liveChatId = detected;
+    console.log(`[SBB Cron YouTube] Auto-detected liveChatId: ${detected}`);
   }
 
   const deadline = Date.now() + LOOP_BUDGET_MS;
@@ -82,7 +96,17 @@ export async function GET(request: NextRequest) {
     try {
       const res = await fetch(url.toString());
       if (!res.ok) {
-        console.error(`[SBB Cron YouTube] API error ${res.status}: ${res.statusText}`);
+        const body = await res.text();
+        // Stream ended — clear stored liveChatId so next cron re-detects
+        if (res.status === 403 || res.status === 404) {
+          console.log(`[SBB Cron YouTube] Chat ended or not found (${res.status}), clearing liveChatId`);
+          await Promise.all([
+            redis.del(KV_YOUTUBE_LIVE_CHAT_ID),
+            redis.del(KV_YOUTUBE_PAGE_TOKEN),
+          ]);
+        } else {
+          console.error(`[SBB Cron YouTube] API error ${res.status}: ${body}`);
+        }
         break;
       }
       data = await res.json() as YouTubeLiveChatResponse;
