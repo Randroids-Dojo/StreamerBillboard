@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 
 interface TwitchStream {
   title: string;
-  game: string;
-  viewers: number;
+  gameName: string;
+  viewerCount: number;
   startedAt: string;
 }
 
@@ -295,7 +295,7 @@ export default function DashboardPage() {
               } />
               <DataRow label="STREAM" value={
                 status?.twitch.stream
-                  ? <span style={{ color: "#22D45F" }}>{status.twitch.stream.title} · {status.twitch.stream.viewers.toLocaleString()} viewers</span>
+                  ? <span style={{ color: "#22D45F" }}>{status.twitch.stream.title} · {status.twitch.stream.viewerCount.toLocaleString()} viewers</span>
                   : status?.twitch.active
                     ? <span style={{ color: "#606060" }}>Offline</span>
                     : null
