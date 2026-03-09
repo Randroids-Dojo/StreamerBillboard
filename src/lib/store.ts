@@ -8,6 +8,7 @@ export interface BillboardState {
   tttBoard: TicTacToeMark[];
   tttCurrentTurn: "X" | "O";
   tttWinner: "" | "X" | "O" | "draw";
+  counter: number;
   lastUpdatedBy: string;
   lastUpdatedAt: string;
 }
@@ -21,6 +22,7 @@ const DEFAULT_STATE: BillboardState = {
   tttBoard: ["", "", "", "", "", "", "", "", ""],
   tttCurrentTurn: "X",
   tttWinner: "",
+  counter: 0,
   lastUpdatedBy: "",
   lastUpdatedAt: "",
 };
@@ -49,10 +51,11 @@ export async function getState(): Promise<BillboardState> {
 }
 
 export async function setState(
-  update: Partial<BillboardState>
+  update: Partial<BillboardState>,
+  current?: BillboardState
 ): Promise<BillboardState> {
-  const current = await getState();
-  const next: BillboardState = { ...current, ...update };
+  const base = current ?? (await getState());
+  const next: BillboardState = { ...base, ...update };
 
   if (!hasRedis()) {
     memoryState = next;
