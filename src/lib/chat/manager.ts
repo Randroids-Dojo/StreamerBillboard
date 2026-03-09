@@ -235,8 +235,8 @@ async function createEventSubSubscription(opts: {
     type: "channel.chat.message",
     version: "1",
     condition: {
-      broadcaster_user_id: broadcasterUserId,
-      user_id: chatUserId,
+      broadcaster_user_id: String(broadcasterUserId),
+      user_id: String(chatUserId),
     },
     transport: {
       method: "webhook",

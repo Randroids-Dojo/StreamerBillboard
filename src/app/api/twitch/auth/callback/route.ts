@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
 
   // Store tokens + user ID, clean up state
   await storeTwitchTokens(data.access_token, data.refresh_token, data.expires_in);
-  await redis.set("sbb:twitch:user_id", validated.user_id);
+  await redis.set("sbb:twitch:user_id", String(validated.user_id));
   await redis.del(KV_OAUTH_STATE);
 
   return NextResponse.redirect(`${appUrl}/?twitch_auth=success&user=${validated.login}&scopes=${validated.scopes.join(",")}`);
