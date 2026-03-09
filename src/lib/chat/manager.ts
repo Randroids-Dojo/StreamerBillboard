@@ -231,6 +231,21 @@ async function createEventSubSubscription(opts: {
 }): Promise<string> {
   const { broadcasterUserId, chatUserId, appToken, clientId, appUrl, eventsubSecret } = opts;
 
+  const body = {
+    type: "channel.chat.message",
+    version: "1",
+    condition: {
+      broadcaster_user_id: broadcasterUserId,
+      user_id: chatUserId,
+    },
+    transport: {
+      method: "webhook",
+      callback: `${appUrl}/api/twitch/eventsub`,
+      secret: eventsubSecret,
+    },
+  };
+  console.log("[SBB Twitch] EventSub subscription body:", JSON.stringify({ ...body, transport: { ...body.transport, secret: "[redacted]" } }));
+
   const res = await fetch("https://api.twitch.tv/helix/eventsub/subscriptions", {
     method: "POST",
     headers: {
@@ -238,19 +253,7 @@ async function createEventSubSubscription(opts: {
       Authorization: `Bearer ${appToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      type: "channel.chat.message",
-      version: "1",
-      condition: {
-        broadcaster_user_id: broadcasterUserId,
-        user_id: chatUserId,
-      },
-      transport: {
-        method: "webhook",
-        callback: `${appUrl}/api/twitch/eventsub`,
-        secret: eventsubSecret,
-      },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
