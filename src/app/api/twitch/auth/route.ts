@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 import crypto from "crypto";
 
@@ -13,9 +13,14 @@ function getRedis(): Redis {
 }
 
 /**
- * GET /api/twitch/auth — redirect to Twitch OAuth authorization page.
+ * GET /api/twitch/auth?key=<AUTH_SECRET> — redirect to Twitch OAuth authorization page.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authSecret = process.env.AUTH_SECRET;
+  if (authSecret && request.nextUrl.searchParams.get("key") !== authSecret) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const clientId = process.env.TWITCH_CLIENT_ID;
   const appUrl = process.env.APP_URL;
 
