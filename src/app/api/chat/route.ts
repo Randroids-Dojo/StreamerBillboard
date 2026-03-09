@@ -43,11 +43,12 @@ export async function POST(request: NextRequest) {
 
   if (action === "stop") {
     if (platform === "youtube") {
-      chatManager.stopYouTube();
+      await chatManager.stopYouTube();
     } else if (platform === "twitch") {
       await chatManager.stopTwitch();
     }
-    return NextResponse.json({ status: "stopped", ...chatManager.status() });
+    const status = await chatManager.status();
+    return NextResponse.json({ status: "stopped", ...status });
   }
 
   if (action === "start") {
@@ -69,7 +70,8 @@ export async function POST(request: NextRequest) {
         }
         await chatManager.startTwitch(body.channel);
       }
-      return NextResponse.json({ status: "started", ...chatManager.status() });
+      const status = await chatManager.status();
+      return NextResponse.json({ status: "started", ...status });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return NextResponse.json({ error: message }, { status: 500 });
