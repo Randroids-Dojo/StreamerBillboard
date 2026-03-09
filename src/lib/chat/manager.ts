@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis";
 import { getLiveChatId } from "./youtube";
-import { getTwitchUserToken } from "./twitch-auth";
+import { getTwitchAppToken, getTwitchUserToken } from "./twitch-auth";
 import { getTwitchUser, getTwitchStream, type TwitchStream } from "./twitch-helix";
 
 // ---------------------------------------------------------------------------
@@ -81,10 +81,13 @@ class ChatManager {
     if (!appUrl) throw new Error("APP_URL is not set");
     if (!eventsubSecret) throw new Error("TWITCH_EVENTSUB_SECRET is not set");
 
-    // Will throw descriptive error if no user token
-    const userToken = await getTwitchUserToken();
+    // Verify user has authorized (needed for channel:bot grant)
+    await getTwitchUserToken();
 
-    const user = await getTwitchUser(channel);
+    const [user, appToken] = await Promise.all([
+      getTwitchUser(channel),
+      getTwitchAppToken(),
+    ]);
     if (!user) throw new Error(`Twitch channel "${channel}" not found`);
 
     const broadcasterUserId = user.id;
@@ -98,13 +101,13 @@ class ChatManager {
     // Delete existing subscription if any
     const existingSubId = await redis.get<string>(KV_TWITCH_EVENTSUB_ID);
     if (existingSubId) {
-      await deleteEventSubSubscription(existingSubId, userToken, clientId);
+      await deleteEventSubSubscription(existingSubId, appToken, clientId);
     }
 
-    // Register new EventSub subscription
+    // Register new EventSub subscription (webhooks require app access token)
     const subId = await createEventSubSubscription({
       broadcasterUserId,
-      userToken,
+      appToken,
       clientId,
       appUrl,
       eventsubSecret,
@@ -127,8 +130,8 @@ class ChatManager {
     if (subId) {
       const clientId = process.env.TWITCH_CLIENT_ID ?? "";
       try {
-        const userToken = await getTwitchUserToken();
-        await deleteEventSubSubscription(subId, userToken, clientId);
+        const appToken = await getTwitchAppToken();
+        await deleteEventSubSubscription(subId, appToken, clientId);
       } catch (err) {
         console.error("[SBB Twitch] Error deleting EventSub subscription:", err);
       }
@@ -216,18 +219,18 @@ async function deleteEventSubSubscription(
 
 async function createEventSubSubscription(opts: {
   broadcasterUserId: string;
-  userToken: string;
+  appToken: string;
   clientId: string;
   appUrl: string;
   eventsubSecret: string;
 }): Promise<string> {
-  const { broadcasterUserId, userToken, clientId, appUrl, eventsubSecret } = opts;
+  const { broadcasterUserId, appToken, clientId, appUrl, eventsubSecret } = opts;
 
   const res = await fetch("https://api.twitch.tv/helix/eventsub/subscriptions", {
     method: "POST",
     headers: {
       "Client-Id": clientId,
-      Authorization: `Bearer ${userToken}`,
+      Authorization: `Bearer ${appToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
