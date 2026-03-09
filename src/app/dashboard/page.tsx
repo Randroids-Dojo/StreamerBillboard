@@ -267,7 +267,7 @@ export default function DashboardPage() {
                 </span>
                 {status && !status.twitch.authorized && (
                   <a
-                    href={`/api/twitch/auth?key=${encodeURIComponent(document.cookie.match(/sbb_dashboard_auth=([^;]+)/)?.[1] ?? "")}`}
+                    href="/api/twitch/auth/redirect"
                     style={{ fontSize: 9, color: "#E07B39", letterSpacing: "0.15em", textDecoration: "none", border: "1px solid #3a2010", padding: "2px 8px" }}
                   >
                     OAUTH REQUIRED ↗

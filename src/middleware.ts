@@ -3,8 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow login endpoints through without auth
-  if (pathname === "/dashboard/login" || pathname === "/api/dashboard/login") {
+  // Allow login and Twitch OAuth redirect through without dashboard auth
+  if (
+    pathname === "/dashboard/login" ||
+    pathname === "/api/dashboard/login" ||
+    pathname === "/api/twitch/auth/redirect"
+  ) {
     return NextResponse.next();
   }
 
