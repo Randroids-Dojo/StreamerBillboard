@@ -30,9 +30,14 @@ function getRedis(): Redis {
   });
 }
 
+// Budget: stay well under Vercel Hobby's 60s function timeout
+const LOOP_BUDGET_MS = 50_000;
+const MIN_POLL_INTERVAL_MS = 2_000;
+
 /**
  * GET /api/cron/youtube — Vercel Cron handler (runs every minute).
- * Polls the YouTube Live Chat API and processes new messages.
+ * Polls the YouTube Live Chat API in a tight loop for ~50s so messages
+ * are processed within a few seconds rather than waiting a full minute.
  */
 export async function GET(request: NextRequest) {
   // Verify Vercel cron secret
@@ -60,56 +65,63 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "YOUTUBE_API_KEY is not set" }, { status: 500 });
   }
 
-  const pageToken = await redis.get<string>(KV_YOUTUBE_PAGE_TOKEN);
+  const deadline = Date.now() + LOOP_BUDGET_MS;
+  let totalProcessed = 0;
+  let polls = 0;
 
-  // Build request URL
-  const url = new URL("https://www.googleapis.com/youtube/v3/liveChat/messages");
-  url.searchParams.set("liveChatId", liveChatId);
-  url.searchParams.set("part", "snippet,authorDetails");
-  url.searchParams.set("key", apiKey);
-  if (pageToken) {
-    url.searchParams.set("pageToken", pageToken);
-  }
+  while (Date.now() < deadline) {
+    const pageToken = await redis.get<string>(KV_YOUTUBE_PAGE_TOKEN);
 
-  let data: YouTubeLiveChatResponse;
-  try {
-    const res = await fetch(url.toString());
-    if (!res.ok) {
-      throw new Error(`YouTube API ${res.status}: ${res.statusText}`);
-    }
-    data = await res.json() as YouTubeLiveChatResponse;
-  } catch (err) {
-    console.error("[SBB Cron YouTube] Fetch error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : String(err) },
-      { status: 502 }
-    );
-  }
+    const url = new URL("https://www.googleapis.com/youtube/v3/liveChat/messages");
+    url.searchParams.set("liveChatId", liveChatId);
+    url.searchParams.set("part", "snippet,authorDetails");
+    url.searchParams.set("key", apiKey);
+    if (pageToken) url.searchParams.set("pageToken", pageToken);
 
-  // Process messages
-  const messages: ChatMessage[] = (data.items ?? []).map((item) => ({
-    platform: "youtube" as const,
-    username: item.authorDetails.displayName,
-    message: item.snippet.displayMessage,
-    timestamp: item.snippet.publishedAt,
-  }));
-
-  for (const msg of messages) {
+    let data: YouTubeLiveChatResponse;
     try {
-      await processChatMessage(msg);
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        console.error(`[SBB Cron YouTube] API error ${res.status}: ${res.statusText}`);
+        break;
+      }
+      data = await res.json() as YouTubeLiveChatResponse;
     } catch (err) {
-      console.error("[SBB Cron YouTube] processChatMessage error:", err);
+      console.error("[SBB Cron YouTube] Fetch error:", err);
+      break;
     }
+
+    polls++;
+
+    // Process messages
+    const messages: ChatMessage[] = (data.items ?? []).map((item) => ({
+      platform: "youtube" as const,
+      username: item.authorDetails.displayName,
+      message: item.snippet.displayMessage,
+      timestamp: item.snippet.publishedAt,
+    }));
+
+    for (const msg of messages) {
+      try {
+        await processChatMessage(msg);
+      } catch (err) {
+        console.error("[SBB Cron YouTube] processChatMessage error:", err);
+      }
+    }
+    totalProcessed += messages.length;
+
+    // Store next page token
+    if (data.nextPageToken) {
+      await redis.set(KV_YOUTUBE_PAGE_TOKEN, data.nextPageToken);
+    }
+
+    // Respect YouTube's requested polling interval, with a floor
+    const waitMs = Math.max(data.pollingIntervalMillis ?? MIN_POLL_INTERVAL_MS, MIN_POLL_INTERVAL_MS);
+    const remaining = deadline - Date.now();
+    if (remaining <= waitMs) break;
+
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
 
-  // Store next page token
-  if (data.nextPageToken) {
-    await redis.set(KV_YOUTUBE_PAGE_TOKEN, data.nextPageToken);
-  }
-
-  return NextResponse.json({
-    status: "ok",
-    processed: messages.length,
-    nextPageToken: data.nextPageToken ?? null,
-  });
+  return NextResponse.json({ status: "ok", polls, processed: totalProcessed });
 }
