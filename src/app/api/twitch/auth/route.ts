@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   authUrl.searchParams.set("client_id", clientId);
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("scope", "user:read:chat channel:bot");
+  authUrl.searchParams.set("scope", "user:read:chat user:bot channel:bot");
   authUrl.searchParams.set("state", state);
   authUrl.searchParams.set("force_verify", "true");
 
