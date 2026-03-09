@@ -3,9 +3,14 @@ import { chatManager } from "@/lib/chat/manager";
 
 /**
  * GET /api/chat — returns connection status for YouTube and Twitch.
+ * When Twitch is connected and TWITCH_CLIENT_ID/SECRET are set, includes live stream info.
  */
 export async function GET() {
-  return NextResponse.json(chatManager.status());
+  const [base, twitch] = await Promise.all([
+    chatManager.status(),
+    chatManager.twitchStatus(),
+  ]);
+  return NextResponse.json({ youtube: base.youtube, twitch });
 }
 
 /**

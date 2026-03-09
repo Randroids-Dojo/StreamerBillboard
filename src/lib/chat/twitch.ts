@@ -3,9 +3,6 @@ import type { ChatMessage } from "@/lib/parser";
 
 export interface TwitchClientOptions {
   channel: string;
-  /** OAuth token (without the "oauth:" prefix — it will be added if missing). */
-  oauthToken?: string;
-  username?: string;
   onMessages: (messages: ChatMessage[]) => void;
   onError?: (error: Error) => void;
 }
@@ -20,19 +17,11 @@ export class TwitchChatClient {
     this.onMessages = options.onMessages;
     this.onError = options.onError ?? (() => {});
 
-    const identity = options.oauthToken
-      ? {
-          username: options.username ?? "sbb_bot",
-          password: options.oauthToken.startsWith("oauth:")
-            ? options.oauthToken
-            : `oauth:${options.oauthToken}`,
-        }
-      : undefined;
-
+    // Anonymous read-only connection — no OAuth token required.
+    // Twitch officially supports this via the "justinfan" username scheme.
     this.client = new tmi.Client({
       options: { debug: false },
       connection: { reconnect: true, secure: true },
-      identity,
       channels: [options.channel],
     });
 
