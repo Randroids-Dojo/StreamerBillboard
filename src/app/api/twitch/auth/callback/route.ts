@@ -83,9 +83,24 @@ export async function GET(request: NextRequest) {
     expires_in: number;
   };
 
-  // Store tokens and clean up state
+  // Validate token and get user info + actual scopes granted
+  const validateRes = await fetch("https://id.twitch.tv/oauth2/validate", {
+    headers: { Authorization: `OAuth ${data.access_token}` },
+  });
+  if (!validateRes.ok) {
+    return NextResponse.json({ error: "Token validation failed" }, { status: 500 });
+  }
+  const validated = await validateRes.json() as {
+    user_id: string;
+    login: string;
+    scopes: string[];
+  };
+  console.log("[SBB Twitch] OAuth granted scopes:", validated.scopes, "user:", validated.login, "id:", validated.user_id);
+
+  // Store tokens + user ID, clean up state
   await storeTwitchTokens(data.access_token, data.refresh_token, data.expires_in);
+  await redis.set("sbb:twitch:user_id", validated.user_id);
   await redis.del(KV_OAUTH_STATE);
 
-  return NextResponse.redirect(`${appUrl}/?twitch_auth=success`);
+  return NextResponse.redirect(`${appUrl}/?twitch_auth=success&user=${validated.login}&scopes=${validated.scopes.join(",")}`);
 }

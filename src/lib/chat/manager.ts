@@ -81,22 +81,25 @@ class ChatManager {
     if (!appUrl) throw new Error("APP_URL is not set");
     if (!eventsubSecret) throw new Error("TWITCH_EVENTSUB_SECRET is not set");
 
-    // Verify user has authorized (needed for channel:bot grant)
+    // Verify user has authorized and get their stored Twitch user ID
     await getTwitchUserToken();
 
-    const [user, appToken] = await Promise.all([
+    const redis = getRedis();
+    const [user, appToken, storedUserId] = await Promise.all([
       getTwitchUser(channel),
       getTwitchAppToken(),
+      redis.get<string>("sbb:twitch:user_id"),
     ]);
     if (!user) throw new Error(`Twitch channel "${channel}" not found`);
 
     const broadcasterUserId = user.id;
+    // Use the user ID stored during OAuth — guarantees it matches the authorized account
+    const chatUserId = storedUserId ?? broadcasterUserId;
+    console.log(`[SBB Twitch] broadcaster_user_id=${broadcasterUserId} user_id=${chatUserId} stored=${storedUserId ?? "none"}`);
 
     if (!hasRedis()) {
       throw new Error("KV store is required to run Twitch chat ingestion");
     }
-
-    const redis = getRedis();
 
     // Delete existing subscription if any
     const existingSubId = await redis.get<string>(KV_TWITCH_EVENTSUB_ID);
@@ -107,6 +110,7 @@ class ChatManager {
     // Register new EventSub subscription (webhooks require app access token)
     const subId = await createEventSubSubscription({
       broadcasterUserId,
+      chatUserId,
       appToken,
       clientId,
       appUrl,
@@ -219,12 +223,13 @@ async function deleteEventSubSubscription(
 
 async function createEventSubSubscription(opts: {
   broadcasterUserId: string;
+  chatUserId: string;
   appToken: string;
   clientId: string;
   appUrl: string;
   eventsubSecret: string;
 }): Promise<string> {
-  const { broadcasterUserId, appToken, clientId, appUrl, eventsubSecret } = opts;
+  const { broadcasterUserId, chatUserId, appToken, clientId, appUrl, eventsubSecret } = opts;
 
   const res = await fetch("https://api.twitch.tv/helix/eventsub/subscriptions", {
     method: "POST",
@@ -238,7 +243,7 @@ async function createEventSubSubscription(opts: {
       version: "1",
       condition: {
         broadcaster_user_id: broadcasterUserId,
-        user_id: broadcasterUserId,
+        user_id: chatUserId,
       },
       transport: {
         method: "webhook",
