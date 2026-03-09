@@ -6,6 +6,7 @@ import type { ChatMessage } from "@/lib/parser";
 
 const KV_YOUTUBE_LIVE_CHAT_ID = "sbb:youtube:live_chat_id";
 const KV_YOUTUBE_PAGE_TOKEN = "sbb:youtube:page_token";
+const KV_YOUTUBE_DISABLED = "sbb:youtube:disabled";
 
 interface YouTubeChatMessageItem {
   snippet: {
@@ -59,6 +60,12 @@ export async function GET(request: NextRequest) {
   }
 
   const redis = getRedis();
+
+  // Respect dashboard disable toggle
+  const disabled = await redis.get<string>(KV_YOUTUBE_DISABLED);
+  if (disabled === "1") {
+    return NextResponse.json({ status: "disabled" });
+  }
 
   // Auto-detect live stream if no liveChatId is stored
   let liveChatId = await redis.get<string>(KV_YOUTUBE_LIVE_CHAT_ID);
