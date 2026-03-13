@@ -84,15 +84,34 @@ export async function processChatMessage(msg: ChatMessage): Promise<void> {
       break;
     }
     case "casa": {
-      // Navigate to a viewer's casa — also activates the game if not already
       const current = await getState();
-      await setState({
-        activeGame: "casa",
-        gameArg: command.username,
-        gameCmd: encodeGameCmd({ type: "casa", action: "navigate", username: command.username }),
-        gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
-        ...meta,
-      }, current);
+      if (command.subtype === "navigate") {
+        await setState({
+          activeGame: "casa",
+          gameArg: command.username,
+          gameCmd: encodeGameCmd({ type: "casa", action: "navigate", username: command.username }),
+          gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
+          ...meta,
+        }, current);
+      } else if (command.subtype === "ring") {
+        await setState({
+          gameCmd: encodeGameCmd({ type: "casa", action: "ringDoorbell" }),
+          gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
+          ...meta,
+        }, current);
+      } else if (command.subtype === "water") {
+        await setState({
+          gameCmd: encodeGameCmd({ type: "casa", action: "waterPlant" }),
+          gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
+          ...meta,
+        }, current);
+      } else if (command.subtype === "lights") {
+        await setState({
+          gameCmd: encodeGameCmd({ type: "casa", action: command.turnOn ? "lightsOn" : "lightsOff" }),
+          gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
+          ...meta,
+        }, current);
+      }
       break;
     }
   }

@@ -2,7 +2,7 @@ import { parseColor } from "@/lib/commands/color";
 import { parseCounter, type CounterAction } from "@/lib/commands/counter";
 import { parseText } from "@/lib/commands/text";
 import { parseTicTacToe, type TicTacToeMove } from "@/lib/commands/tictactoe";
-import { parseGameLaunch, parseBPK, parseNote, parseCasa, type BPKCommand } from "@/lib/commands/game";
+import { parseGameLaunch, parseBPK, parseNote, parseCasa, type BPKCommand, type CasaCommand } from "@/lib/commands/game";
 
 export interface ChatMessage {
   platform: "youtube" | "twitch";
@@ -18,7 +18,7 @@ export interface ParsedCounterCommand { type: "count";  action: CounterAction }
 export interface ParsedGameCommand    { type: "game";   game: string; arg: string }
 export interface ParsedBPKCommand     { type: "bpk";    player: BPKCommand["player"]; action: string }
 export interface ParsedNoteCommand    { type: "note";   note: string }
-export interface ParsedCasaCommand    { type: "casa";   username: string }
+export type ParsedCasaCommand = { type: "casa" } & CasaCommand
 
 export type AnyParsedCommand =
   | ParsedColorCommand
@@ -71,10 +71,10 @@ export function parseCommand(message: string): AnyParsedCommand | null {
     return null;
   }
 
-  // SBB casa <username>
+  // SBB casa <username|ring|water|lights on|lights off>
   if (bodyUp.startsWith(CASA_PREFIX)) {
-    const username = parseCasa(body.slice(CASA_PREFIX.length).trim());
-    if (username) return { type: "casa", username };
+    const result = parseCasa(body.slice(CASA_PREFIX.length).trim());
+    if (result) return { type: "casa", ...result };
     return null;
   }
 

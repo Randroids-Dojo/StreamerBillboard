@@ -48,10 +48,32 @@ export function parseNote(input: string): string | null {
   return `${note}${accidental}${octave}`;
 }
 
-/** SBB casa <username> */
-export function parseCasa(input: string): string | null {
+export type CasaCommand =
+  | { subtype: "navigate"; username: string }
+  | { subtype: "ring" }
+  | { subtype: "water" }
+  | { subtype: "lights"; turnOn: boolean };
+
+// Reserved words that cannot be usernames
+const CASA_RESERVED = new Set(["ring", "water", "lights"]);
+
+/**
+ * SBB casa <username>        — navigate to a viewer's house
+ * SBB casa ring              — ring the doorbell
+ * SBB casa water             — water the plant
+ * SBB casa lights on/off     — toggle the lights
+ */
+export function parseCasa(input: string): CasaCommand | null {
   const trimmed = input.trim().toLowerCase();
   if (!trimmed) return null;
+
+  if (trimmed === "ring")  return { subtype: "ring" };
+  if (trimmed === "water") return { subtype: "water" };
+  if (trimmed === "lights on"  || trimmed === "lights 1") return { subtype: "lights", turnOn: true };
+  if (trimmed === "lights off" || trimmed === "lights 0") return { subtype: "lights", turnOn: false };
+
+  // Navigate: must be a valid username and not a reserved word
+  if (CASA_RESERVED.has(trimmed)) return null;
   if (!/^[a-z0-9_-]+$/.test(trimmed)) return null;
-  return trimmed;
+  return { subtype: "navigate", username: trimmed };
 }
