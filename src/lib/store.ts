@@ -11,6 +11,11 @@ export interface BillboardState {
   counter: number;
   lastUpdatedBy: string;
   lastUpdatedAt: string;
+  // Game mode
+  activeGame: string;   // "" = none, "bpk" | "piano" | "casa" | "epoch" | ...
+  gameArg: string;      // game-specific argument (e.g. casa username)
+  gameCmd: string;      // JSON-serialised latest game command
+  gameCmdSeq: number;   // increments on every new gameCmd
 }
 
 const STATE_KEY = "sbb:state";
@@ -25,6 +30,10 @@ const DEFAULT_STATE: BillboardState = {
   counter: 0,
   lastUpdatedBy: "",
   lastUpdatedAt: "",
+  activeGame: "",
+  gameArg: "",
+  gameCmd: "",
+  gameCmdSeq: 0,
 };
 
 // In-memory fallback for local dev (when KV env vars are not set)

@@ -1,8 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TicTacToeMark } from "@/lib/commands/tictactoe";
 import type { BillboardState } from "@/lib/store";
+
+const GAME_URLS: Record<string, string> = {
+  bpk:        "https://block-punch-kick.vercel.app",
+  piano:      "https://baby-piano-eight.vercel.app",
+  casa:       "https://mi-casa-es-su-casa.vercel.app",
+  epoch:      "https://epoch-theta.vercel.app",
+  gopit:      "https://go-pit.vercel.app",
+  godig:      "https://go-dig.vercel.app",
+  block:      "https://block-you.vercel.app",
+  determined: "https://determined-khaki.vercel.app",
+};
+
+function getGameUrl(game: string, arg: string): string {
+  const base = GAME_URLS[game];
+  if (!base) return "";
+  if (game === "casa" && arg) return `${base}/${encodeURIComponent(arg)}`;
+  return base;
+}
 
 const DEFAULT_STATE: BillboardState = {
   bgcolor: "#000000",
@@ -14,6 +32,10 @@ const DEFAULT_STATE: BillboardState = {
   counter: 0,
   lastUpdatedBy: "",
   lastUpdatedAt: "",
+  activeGame: "",
+  gameArg: "",
+  gameCmd: "",
+  gameCmdSeq: 0,
 };
 
 function isTTTActive(state: BillboardState): boolean {
@@ -65,6 +87,8 @@ function TicTacToeBoard({
 export function Billboard() {
   const [state, setState] = useState<BillboardState>(DEFAULT_STATE);
   const [showOverlay, setShowOverlay] = useState(true);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const lastCmdSeq = useRef(0);
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
@@ -113,7 +137,25 @@ export function Billboard() {
     };
   }, []);
 
+  // Forward game commands to the iframe via postMessage
+  useEffect(() => {
+    if (!state.gameCmd || state.gameCmdSeq === lastCmdSeq.current) return;
+    lastCmdSeq.current = state.gameCmdSeq;
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    try {
+      win.postMessage({ source: "sbb", ...JSON.parse(state.gameCmd) }, "*");
+    } catch { /* malformed gameCmd */ }
+  }, [state.gameCmdSeq, state.gameCmd]);
+
+  function handleIframeLoad() {
+    const win = iframeRef.current?.contentWindow;
+    if (!win || !state.activeGame) return;
+    win.postMessage({ source: "sbb", type: "init", game: state.activeGame }, "*");
+  }
+
   const tttActive = isTTTActive(state);
+  const gameUrl = state.activeGame ? getGameUrl(state.activeGame, state.gameArg) : "";
 
   return (
     <div
@@ -121,7 +163,23 @@ export function Billboard() {
       style={{ backgroundColor: state.bgcolor }}
       onClick={() => setShowOverlay((prev) => !prev)}
     >
-      {tttActive ? (
+      {/* Game mode — full-screen iframe, covers all other billboard content */}
+      {gameUrl && (
+        <iframe
+          ref={iframeRef}
+          key={gameUrl}
+          src={gameUrl}
+          onLoad={handleIframeLoad}
+          style={{
+            position: "fixed", inset: 0,
+            width: "100%", height: "100%",
+            border: "none", zIndex: 10,
+          }}
+          allow="autoplay; fullscreen"
+        />
+      )}
+
+      {!gameUrl && tttActive ? (
         <div className="flex items-center justify-center w-full h-full">
           <TicTacToeBoard
             board={state.tttBoard}
@@ -129,7 +187,7 @@ export function Billboard() {
             winner={state.tttWinner}
           />
         </div>
-      ) : (
+      ) : !gameUrl && (
         <div className="flex flex-col items-center justify-center w-full h-full gap-8">
           {state.counter !== 0 && (
             <span
@@ -154,15 +212,17 @@ export function Billboard() {
         </div>
       )}
       {showOverlay && state.lastUpdatedBy && (
-        <div className="absolute bottom-4 right-4 bg-black/50 text-white px-4 py-2 rounded-lg text-sm font-mono backdrop-blur-sm">
+        <div className="absolute bottom-4 right-4 bg-black/50 text-white px-4 py-2 rounded-lg text-sm font-mono backdrop-blur-sm" style={{ zIndex: 20 }}>
           <div>
-            {tttActive
-              ? `TTT: ${state.tttWinner === "draw" ? "Draw" : state.tttWinner ? `${state.tttWinner} wins` : `${state.tttCurrentTurn}'s turn`}`
-              : [
-                  state.counter !== 0 && `Counter: ${state.counter}`,
-                  state.text && `Text: "${state.text}"`,
-                  !state.counter && !state.text && state.bgcolor,
-                ].filter(Boolean).join(" · ")}
+            {gameUrl
+              ? `Game: ${state.activeGame}${state.gameArg ? ` (${state.gameArg})` : ""}`
+              : tttActive
+                ? `TTT: ${state.tttWinner === "draw" ? "Draw" : state.tttWinner ? `${state.tttWinner} wins` : `${state.tttCurrentTurn}'s turn`}`
+                : [
+                    state.counter !== 0 && `Counter: ${state.counter}`,
+                    state.text && `Text: "${state.text}"`,
+                    !state.counter && !state.text && state.bgcolor,
+                  ].filter(Boolean).join(" · ")}
           </div>
           <div className="text-gray-300">by {state.lastUpdatedBy}</div>
         </div>

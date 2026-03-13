@@ -3,6 +3,11 @@ import { getState, setState } from "@/lib/store";
 import { applyCounter } from "@/lib/commands/counter";
 import { applyTicTacToeMove } from "@/lib/commands/tictactoe";
 
+// Serialise a game command payload to store in state
+function encodeGameCmd(payload: Record<string, unknown>): string {
+  return JSON.stringify(payload);
+}
+
 /**
  * Process a single chat message through the command pipeline.
  * Shared between the ingest API route and the cron/eventsub handlers.
@@ -50,6 +55,44 @@ export async function processChatMessage(msg: ChatMessage): Promise<void> {
           current
         );
       }
+      break;
+    }
+    case "game": {
+      if (command.game === "off") {
+        await setState({ activeGame: "", gameArg: "", gameCmd: "", ...meta });
+      } else {
+        await setState({ activeGame: command.game, gameArg: command.arg, gameCmd: "", ...meta });
+      }
+      break;
+    }
+    case "bpk": {
+      const current = await getState();
+      await setState({
+        gameCmd: encodeGameCmd({ type: "bpk", player: command.player, action: command.action }),
+        gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
+        ...meta,
+      }, current);
+      break;
+    }
+    case "note": {
+      const current = await getState();
+      await setState({
+        gameCmd: encodeGameCmd({ type: "note", note: command.note }),
+        gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
+        ...meta,
+      }, current);
+      break;
+    }
+    case "casa": {
+      // Navigate to a viewer's casa — also activates the game if not already
+      const current = await getState();
+      await setState({
+        activeGame: "casa",
+        gameArg: command.username,
+        gameCmd: encodeGameCmd({ type: "casa", action: "navigate", username: command.username }),
+        gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
+        ...meta,
+      }, current);
       break;
     }
   }
