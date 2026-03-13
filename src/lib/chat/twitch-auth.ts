@@ -1,6 +1,6 @@
 /** Twitch token management — app credentials and user OAuth tokens. */
 
-import { Redis } from "@upstash/redis";
+import { hasRedis, getRedis } from "@/lib/redis";
 
 // ---------------------------------------------------------------------------
 // App token (Client Credentials flow) — in-memory cache
@@ -59,17 +59,6 @@ export async function getTwitchAppToken(): Promise<string> {
 const KV_ACCESS_TOKEN = "sbb:twitch:user_access_token";
 const KV_REFRESH_TOKEN = "sbb:twitch:user_refresh_token";
 const KV_EXPIRES_AT = "sbb:twitch:token_expires_at";
-
-function hasRedis(): boolean {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
-
-function getRedis(): Redis {
-  return new Redis({
-    url: process.env.KV_REST_API_URL!,
-    token: process.env.KV_REST_API_TOKEN!,
-  });
-}
 
 /**
  * Store Twitch user OAuth tokens in KV.

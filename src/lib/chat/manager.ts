@@ -1,4 +1,4 @@
-import { Redis } from "@upstash/redis";
+import { hasRedis, getRedis } from "@/lib/redis";
 import { getLiveChatId } from "./youtube";
 import { getTwitchAppToken, getTwitchUserToken } from "./twitch-auth";
 import { getTwitchUser, getTwitchStream, type TwitchStream } from "./twitch-helix";
@@ -20,17 +20,6 @@ export interface TwitchStatus {
   connected: boolean;
   channel?: string;
   stream?: TwitchStream | null;
-}
-
-function hasRedis(): boolean {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
-
-function getRedis(): Redis {
-  return new Redis({
-    url: process.env.KV_REST_API_URL!,
-    token: process.env.KV_REST_API_TOKEN!,
-  });
 }
 
 // ---------------------------------------------------------------------------

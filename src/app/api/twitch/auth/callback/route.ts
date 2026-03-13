@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Redis } from "@upstash/redis";
+import { getRedis } from "@/lib/redis";
 import { storeTwitchTokens } from "@/lib/chat/twitch-auth";
 
 const KV_OAUTH_STATE = "sbb:twitch:oauth_state";
-
-function getRedis(): Redis {
-  return new Redis({
-    url: process.env.KV_REST_API_URL!,
-    token: process.env.KV_REST_API_TOKEN!,
-  });
-}
 
 /**
  * GET /api/twitch/auth/callback — exchange OAuth code for tokens.

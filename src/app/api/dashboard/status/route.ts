@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Redis } from "@upstash/redis";
+import { getRedis } from "@/lib/redis";
 import { getTwitchStream } from "@/lib/chat/twitch-helix";
 
 const KV_YOUTUBE_LIVE_CHAT_ID = "sbb:youtube:live_chat_id";
@@ -7,13 +7,6 @@ const KV_YOUTUBE_DISABLED = "sbb:youtube:disabled";
 const KV_TWITCH_EVENTSUB_ID = "sbb:twitch:eventsub_id";
 const KV_TWITCH_CHANNEL = "sbb:twitch:channel";
 const KV_TWITCH_USER_TOKEN = "sbb:twitch:user_access_token";
-
-function getRedis() {
-  return new Redis({
-    url: process.env.KV_REST_API_URL!,
-    token: process.env.KV_REST_API_TOKEN!,
-  });
-}
 
 export async function GET() {
   if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {

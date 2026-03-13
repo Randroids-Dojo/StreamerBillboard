@@ -2,18 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { TicTacToeMark } from "@/lib/commands/tictactoe";
-import type { BillboardState } from "@/lib/store";
-
-const GAME_URLS: Record<string, string> = {
-  bpk:        "https://block-punch-kick.vercel.app",
-  piano:      "https://baby-piano-eight.vercel.app",
-  casa:       "https://mi-casa-es-su-casa.vercel.app",
-  epoch:      "https://epoch-theta.vercel.app",
-  gopit:      "https://go-pit.vercel.app",
-  godig:      "https://go-dig.vercel.app",
-  block:      "https://block-you.vercel.app",
-  determined: "https://determined-khaki.vercel.app",
-};
+import { DEFAULT_STATE, type BillboardState } from "@/lib/store";
+import { GAME_URLS } from "@/lib/commands/game";
 
 function getGameUrl(game: string, arg: string): string {
   const base = GAME_URLS[game];
@@ -21,22 +11,6 @@ function getGameUrl(game: string, arg: string): string {
   if (game === "casa" && arg) return `${base}/${encodeURIComponent(arg)}`;
   return base;
 }
-
-const DEFAULT_STATE: BillboardState = {
-  bgcolor: "#000000",
-  text: "",
-  textColor: "#ffffff",
-  tttBoard: ["", "", "", "", "", "", "", "", ""],
-  tttCurrentTurn: "X",
-  tttWinner: "",
-  counter: 0,
-  lastUpdatedBy: "",
-  lastUpdatedAt: "",
-  activeGame: "",
-  gameArg: "",
-  gameCmd: "",
-  gameCmdSeq: 0,
-};
 
 function isTTTActive(state: BillboardState): boolean {
   return state.tttBoard.some((cell) => cell !== "") || state.tttWinner !== "";
@@ -152,6 +126,12 @@ export function Billboard() {
     const win = iframeRef.current?.contentWindow;
     if (!win || !state.activeGame) return;
     win.postMessage({ source: "sbb", type: "init", game: state.activeGame }, "*");
+    // Re-post the latest command in case it arrived before the iframe mounted
+    if (state.gameCmd) {
+      try {
+        win.postMessage({ source: "sbb", ...JSON.parse(state.gameCmd) }, "*");
+      } catch { /* malformed gameCmd */ }
+    }
   }
 
   const tttActive = isTTTActive(state);

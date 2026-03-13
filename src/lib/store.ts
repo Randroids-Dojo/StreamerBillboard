@@ -1,5 +1,5 @@
-import { Redis } from "@upstash/redis";
 import { type TicTacToeMark } from "@/lib/commands/tictactoe";
+import { hasRedis, getRedis } from "@/lib/redis";
 
 export interface BillboardState {
   bgcolor: string;
@@ -20,7 +20,7 @@ export interface BillboardState {
 
 const STATE_KEY = "sbb:state";
 
-const DEFAULT_STATE: BillboardState = {
+export const DEFAULT_STATE: BillboardState = {
   bgcolor: "#000000",
   text: "",
   textColor: "#ffffff",
@@ -39,16 +39,6 @@ const DEFAULT_STATE: BillboardState = {
 // In-memory fallback for local dev (when KV env vars are not set)
 let memoryState: BillboardState = { ...DEFAULT_STATE };
 
-function hasRedis(): boolean {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
-
-function getRedis() {
-  return new Redis({
-    url: process.env.KV_REST_API_URL!,
-    token: process.env.KV_REST_API_TOKEN!,
-  });
-}
 
 export async function getState(): Promise<BillboardState> {
   if (!hasRedis()) {

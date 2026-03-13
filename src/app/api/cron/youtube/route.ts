@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Redis } from "@upstash/redis";
+import { getRedis } from "@/lib/redis";
 import { processChatMessage } from "@/lib/chat/processor";
 import { findActiveLiveChatId } from "@/lib/chat/youtube";
 import type { ChatMessage } from "@/lib/parser";
@@ -23,13 +23,6 @@ interface YouTubeLiveChatResponse {
   items: YouTubeChatMessageItem[];
   nextPageToken: string;
   pollingIntervalMillis: number;
-}
-
-function getRedis(): Redis {
-  return new Redis({
-    url: process.env.KV_REST_API_URL!,
-    token: process.env.KV_REST_API_TOKEN!,
-  });
 }
 
 // Budget: stay well under Vercel Hobby's 60s function timeout

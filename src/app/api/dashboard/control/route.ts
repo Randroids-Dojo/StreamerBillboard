@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Redis } from "@upstash/redis";
+import { getRedis } from "@/lib/redis";
 import { chatManager } from "@/lib/chat/manager";
 
 const KV_YOUTUBE_LIVE_CHAT_ID = "sbb:youtube:live_chat_id";
 const KV_YOUTUBE_PAGE_TOKEN = "sbb:youtube:page_token";
 const KV_YOUTUBE_DISABLED = "sbb:youtube:disabled";
-
-function getRedis() {
-  return new Redis({
-    url: process.env.KV_REST_API_URL!,
-    token: process.env.KV_REST_API_TOKEN!,
-  });
-}
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as {

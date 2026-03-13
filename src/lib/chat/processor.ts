@@ -3,9 +3,19 @@ import { getState, setState } from "@/lib/store";
 import { applyCounter } from "@/lib/commands/counter";
 import { applyTicTacToeMove } from "@/lib/commands/tictactoe";
 
-// Serialise a game command payload to store in state
-function encodeGameCmd(payload: Record<string, unknown>): string {
-  return JSON.stringify(payload);
+/** Increment gameCmdSeq and store a new game command payload. */
+async function sendGameCmd(
+  payload: Record<string, unknown>,
+  meta: Record<string, string>,
+  extra?: Partial<{ activeGame: string; gameArg: string }>,
+): Promise<void> {
+  const current = await getState();
+  await setState({
+    gameCmd: JSON.stringify(payload),
+    gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
+    ...extra,
+    ...meta,
+  }, current);
 }
 
 /**
@@ -66,51 +76,26 @@ export async function processChatMessage(msg: ChatMessage): Promise<void> {
       break;
     }
     case "bpk": {
-      const current = await getState();
-      await setState({
-        gameCmd: encodeGameCmd({ type: "bpk", player: command.player, action: command.action }),
-        gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
-        ...meta,
-      }, current);
+      await sendGameCmd({ type: "bpk", player: command.player, action: command.action }, meta);
       break;
     }
     case "note": {
-      const current = await getState();
-      await setState({
-        gameCmd: encodeGameCmd({ type: "note", note: command.note }),
-        gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
-        ...meta,
-      }, current);
+      await sendGameCmd({ type: "note", note: command.note }, meta);
       break;
     }
     case "casa": {
-      const current = await getState();
       if (command.subtype === "navigate") {
-        await setState({
-          activeGame: "casa",
-          gameArg: command.username,
-          gameCmd: encodeGameCmd({ type: "casa", action: "navigate", username: command.username }),
-          gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
-          ...meta,
-        }, current);
+        await sendGameCmd(
+          { type: "casa", action: "navigate", username: command.username },
+          meta,
+          { activeGame: "casa", gameArg: command.username },
+        );
       } else if (command.subtype === "ring") {
-        await setState({
-          gameCmd: encodeGameCmd({ type: "casa", action: "ringDoorbell" }),
-          gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
-          ...meta,
-        }, current);
+        await sendGameCmd({ type: "casa", action: "ringDoorbell" }, meta);
       } else if (command.subtype === "water") {
-        await setState({
-          gameCmd: encodeGameCmd({ type: "casa", action: "waterPlant" }),
-          gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
-          ...meta,
-        }, current);
+        await sendGameCmd({ type: "casa", action: "waterPlant" }, meta);
       } else if (command.subtype === "lights") {
-        await setState({
-          gameCmd: encodeGameCmd({ type: "casa", action: command.turnOn ? "lightsOn" : "lightsOff" }),
-          gameCmdSeq: (current.gameCmdSeq ?? 0) + 1,
-          ...meta,
-        }, current);
+        await sendGameCmd({ type: "casa", action: command.turnOn ? "lightsOn" : "lightsOff" }, meta);
       }
       break;
     }

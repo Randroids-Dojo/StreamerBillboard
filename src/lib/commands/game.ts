@@ -2,6 +2,17 @@ export const GAME_NAMES = new Set([
   "bpk", "piano", "casa", "epoch", "gopit", "godig", "block", "determined",
 ]);
 
+export const GAME_URLS: Record<string, string> = {
+  bpk:        "https://block-punch-kick.vercel.app",
+  piano:      "https://baby-piano-eight.vercel.app",
+  casa:       "https://mi-casa-es-su-casa.vercel.app",
+  epoch:      "https://epoch-theta.vercel.app",
+  gopit:      "https://go-pit.vercel.app",
+  godig:      "https://go-dig.vercel.app",
+  block:      "https://block-you.vercel.app",
+  determined: "https://determined-khaki.vercel.app",
+};
+
 const BPK_ACTIONS = new Set(["punch", "kick", "block", "left", "right", "jump"]);
 
 /** SBB game <name> [arg]  or  SBB game off */
